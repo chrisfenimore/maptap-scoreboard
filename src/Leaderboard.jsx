@@ -16,30 +16,33 @@ function Avatar({ player }) {
   return <span className="avatar-emoji">{player.avatar_emoji || '🌍'}</span>
 }
 
+// Renders a record line that handles ties — shows all tied names joined by " & "
+function RecordLine({ label, entry }) {
+  if (!entry) {
+    return (
+      <div className="record-line">
+        <span className="record-label">{label}</span>
+        <span className="record-value muted">—</span>
+      </div>
+    )
+  }
+  const names = entry.tied.map((r) => r.profiles?.display_name || 'Unknown').join(' & ')
+  return (
+    <div className="record-line">
+      <span className="record-label">{label}</span>
+      <span className="record-value">
+        {entry.score} <em>{names}</em>
+      </span>
+    </div>
+  )
+}
+
 function RecordCard({ title, high, low }) {
   return (
     <div className="record-card">
       <p className="record-title">{title}</p>
-      <div className="record-line">
-        <span className="record-label">King</span>
-        {high ? (
-          <span className="record-value">
-            {high.score} <em>{high.profiles?.display_name}</em>
-          </span>
-        ) : (
-          <span className="record-value muted">—</span>
-        )}
-      </div>
-      <div className="record-line">
-        <span className="record-label">Dumbass</span>
-        {low ? (
-          <span className="record-value">
-            {low.score} <em>{low.profiles?.display_name}</em>
-          </span>
-        ) : (
-          <span className="record-value muted">—</span>
-        )}
-      </div>
+      <RecordLine label="King" entry={high} />
+      <RecordLine label="Dumbass" entry={low} />
     </div>
   )
 }

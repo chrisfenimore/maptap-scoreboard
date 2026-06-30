@@ -25,11 +25,15 @@ function toDate(dateStr) {
   return new Date(y, m - 1, d)
 }
 
-function extremeFor(rows, pickMax) {
+// Returns all rows that share the extreme score (handles ties).
+// Returns null if empty, or { score, tied: [row, ...] }
+function extremesFor(rows, pickMax) {
   if (rows.length === 0) return null
-  return rows.reduce((best, r) =>
+  const extreme = rows.reduce((best, r) =>
     pickMax ? (r.score > best.score ? r : best) : (r.score < best.score ? r : best)
   )
+  const tied = rows.filter((r) => r.score === extreme.score)
+  return { score: extreme.score, tied }
 }
 
 export function computeStats(rows, todayStr) {
@@ -41,12 +45,12 @@ export function computeStats(rows, todayStr) {
   const weekly = withDate.filter((r) => sameWeek(r._date, today))
   const monthly = withDate.filter((r) => sameMonth(r._date, today))
 
-  const daily = { high: extremeFor(todays, true), low: extremeFor(todays, false) }
-  const week = { high: extremeFor(weekly, true), low: extremeFor(weekly, false) }
-  const month = { high: extremeFor(monthly, true), low: extremeFor(monthly, false) }
-  const allTime = { high: extremeFor(withDate, true), low: extremeFor(withDate, false) }
+  const daily = { high: extremesFor(todays, true), low: extremesFor(todays, false) }
+  const week = { high: extremesFor(weekly, true), low: extremesFor(weekly, false) }
+  const month = { high: extremesFor(monthly, true), low: extremesFor(monthly, false) }
+  const allTime = { high: extremesFor(withDate, true), low: extremesFor(withDate, false) }
 
-  // All-time rank: average score per player, most entries logged as tiebreaker info
+  // All-time rank: average score per player
   const byPlayer = {}
   for (const r of withDate) {
     if (!byPlayer[r.player_id]) {
@@ -65,8 +69,8 @@ export function computeStats(rows, todayStr) {
     .map((p) => {
       const total = p.scores.reduce((s, r) => s + r.score, 0)
       const avg = total / p.scores.length
-      const personalHigh = extremeFor(p.scores, true)
-      const personalLow = extremeFor(p.scores, false)
+      const personalHigh = extremesFor(p.scores, true)
+      const personalLow = extremesFor(p.scores, false)
       return {
         ...p,
         entries: p.scores.length,

@@ -4,6 +4,8 @@ import Auth from './Auth'
 import Leaderboard from './Leaderboard'
 import LogScore from './LogScore'
 import Profile from './Profile'
+import TrashTalk from './TrashTalk'
+import Analytics from './Analytics'
 import './app.css'
 
 export default function App() {
@@ -43,8 +45,14 @@ export default function App() {
         <button className={tab === 'log' ? 'tab active' : 'tab'} onClick={() => setTab('log')}>
           Log score
         </button>
+        <button className={tab === 'analytics' ? 'tab active' : 'tab'} onClick={() => setTab('analytics')}>
+          📈 Trends
+        </button>
         <button className={tab === 'profile' ? 'tab active' : 'tab'} onClick={() => setTab('profile')}>
           Profile
+        </button>
+        <button className={tab === 'trash' ? 'tab active' : 'tab'} onClick={() => setTab('trash')}>
+          💬 Trash
         </button>
       </nav>
 
@@ -53,9 +61,11 @@ export default function App() {
         {tab === 'log' && (
           <LogScore userId={session.user.id} onSubmitted={() => setRefreshKey((k) => k + 1)} />
         )}
+        {tab === 'analytics' && <Analytics key={refreshKey} />}
         {tab === 'profile' && (
           <Profile userId={session.user.id} onSaved={() => setRefreshKey((k) => k + 1)} />
         )}
+        {tab === 'trash' && <TrashTalk userId={session.user.id} />}
       </main>
     </div>
   )
