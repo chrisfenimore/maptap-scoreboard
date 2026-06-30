@@ -6,17 +6,26 @@ const EMOJI_CHOICES = [
   '🚀', '🎯', '🛰️', '⛰️', '🌋', '🏜️', '🌊', '🦩', '🐙', '🦊',
 ]
 
+// Supabase still needs an "email" internally, but we never show one or send
+// one. We derive a fake, unique-looking address from the player's name.
+function nameToFakeEmail(name) {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return `${slug || 'player'}@maptap.local`
+}
+
 export default function Auth() {
   const [mode, setMode] = useState('signin')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [pin, setPin] = useState('')
   const [avatarEmoji, setAvatarEmoji] = useState(EMOJI_CHOICES[0])
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [checkEmail, setCheckEmail] = useState(false)
 
   function handleFile(e) {
     const file = e.target.files?.[0]
@@ -28,22 +37,34 @@ export default function Auth() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+
+    if (pin.length < 6) {
+      setError('PIN needs to be at least 6 digits.')
+      return
+    }
+
     setLoading(true)
     try {
+      const fakeEmail = nameToFakeEmail(displayName)
+
       if (mode === 'signup') {
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: fakeEmail,
+          password: pin,
           options: {
             data: {
-              display_name: displayName,
+              display_name: displayName.trim(),
               avatar_emoji: avatarFile ? null : avatarEmoji,
             },
           },
         })
-        if (error) throw error
+        if (error) {
+          if (error.message.toLowerCase().includes('already registered')) {
+            throw new Error('That name is already taken — try a different one.')
+          }
+          throw error
+        }
 
-        // If they picked a photo, upload it and attach to their profile.
         if (avatarFile && data.user) {
           const ext = avatarFile.name.split('.').pop()
           const path = `${data.user.id}/avatar.${ext}`
@@ -58,33 +79,22 @@ export default function Auth() {
               .eq('id', data.user.id)
           }
         }
-        setCheckEmail(true)
+        // No email confirmation needed — signUp already returns a session,
+        // App.jsx will switch over to the main view automatically.
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
+        const { error } = await supabase.auth.signInWithPassword({
+          email: fakeEmail,
+          password: pin,
+        })
+        if (error) {
+          throw new Error('Name or PIN not recognized.')
+        }
       }
     } catch (err) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
-  }
-
-  if (checkEmail) {
-    return (
-      <div className="auth-shell">
-        <div className="auth-card">
-          <p className="eyebrow">MapTap</p>
-          <h1 className="brand">Scoreboard</h1>
-          <p className="auth-msg">
-            Confirmation sent to <strong>{email}</strong>. Verify it, then sign in.
-          </p>
-          <button className="btn-ghost" onClick={() => { setCheckEmail(false); setMode('signin') }}>
-            Back to sign in
-          </button>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -95,58 +105,50 @@ export default function Auth() {
         <p className="auth-tag">Daily scores. Tracked properly.</p>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {mode === 'signup' && (
-            <>
-              <label className="field">
-                <span>Name</span>
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="What shows on the leaderboard"
-                  required
-                />
-              </label>
-
-              <div className="field">
-                <span>Pick an avatar</span>
-                <div className="emoji-grid">
-                  {EMOJI_CHOICES.map((em) => (
-                    <button
-                      type="button"
-                      key={em}
-                      className={`emoji-pick ${!avatarFile && avatarEmoji === em ? 'emoji-pick-active' : ''}`}
-                      onClick={() => { setAvatarEmoji(em); setAvatarFile(null); setAvatarPreview(null) }}
-                    >
-                      {em}
-                    </button>
-                  ))}
-                </div>
-                <label className="upload-row">
-                  <span>or upload a photo</span>
-                  <input type="file" accept="image/png, image/jpeg" onChange={handleFile} />
-                </label>
-                {avatarPreview && (
-                  <img src={avatarPreview} alt="Avatar preview" className="avatar-preview" />
-                )}
-              </div>
-            </>
-          )}
           <label className="field">
-            <span>Email</span>
+            <span>Name</span>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="What shows on the leaderboard"
               required
             />
           </label>
+
+          {mode === 'signup' && (
+            <div className="field">
+              <span>Pick an avatar</span>
+              <div className="emoji-grid">
+                {EMOJI_CHOICES.map((em) => (
+                  <button
+                    type="button"
+                    key={em}
+                    className={`emoji-pick ${!avatarFile && avatarEmoji === em ? 'emoji-pick-active' : ''}`}
+                    onClick={() => { setAvatarEmoji(em); setAvatarFile(null); setAvatarPreview(null) }}
+                  >
+                    {em}
+                  </button>
+                ))}
+              </div>
+              <label className="upload-row">
+                <span>or upload a photo</span>
+                <input type="file" accept="image/png, image/jpeg" onChange={handleFile} />
+              </label>
+              {avatarPreview && (
+                <img src={avatarPreview} alt="Avatar preview" className="avatar-preview" />
+              )}
+            </div>
+          )}
+
           <label className="field">
-            <span>Password</span>
+            <span>PIN (6+ digits)</span>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              inputMode="numeric"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
               minLength={6}
+              placeholder="Pick something you'll remember"
               required
             />
           </label>
@@ -160,7 +162,7 @@ export default function Auth() {
 
         <button
           className="btn-link"
-          onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
+          onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setError('') }}
         >
           {mode === 'signup' ? 'Already have an account? Sign in' : "New here? Create an account"}
         </button>
