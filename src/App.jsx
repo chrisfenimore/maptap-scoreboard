@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient'
 import Auth from './Auth'
 import Leaderboard from './Leaderboard'
 import LogScore from './LogScore'
+import Profile from './Profile'
 import './app.css'
 
 export default function App() {
@@ -42,12 +43,18 @@ export default function App() {
         <button className={tab === 'log' ? 'tab active' : 'tab'} onClick={() => setTab('log')}>
           Log score
         </button>
+        <button className={tab === 'profile' ? 'tab active' : 'tab'} onClick={() => setTab('profile')}>
+          Profile
+        </button>
       </nav>
 
       <main className="content">
         {tab === 'board' && <Leaderboard key={refreshKey} />}
         {tab === 'log' && (
           <LogScore userId={session.user.id} onSubmitted={() => setRefreshKey((k) => k + 1)} />
+        )}
+        {tab === 'profile' && (
+          <Profile userId={session.user.id} onSaved={() => setRefreshKey((k) => k + 1)} />
         )}
       </main>
     </div>
