@@ -21,7 +21,7 @@ function RecordCard({ title, high, low }) {
     <div className="record-card">
       <p className="record-title">{title}</p>
       <div className="record-line">
-        <span className="record-label">High</span>
+        <span className="record-label">King</span>
         {high ? (
           <span className="record-value">
             {high.score} <em>{high.profiles?.display_name}</em>
@@ -31,7 +31,7 @@ function RecordCard({ title, high, low }) {
         )}
       </div>
       <div className="record-line">
-        <span className="record-label">Low</span>
+        <span className="record-label">Dumbass</span>
         {low ? (
           <span className="record-value">
             {low.score} <em>{low.profiles?.display_name}</em>
@@ -128,11 +128,11 @@ export default function Leaderboard() {
               {p.name}
             </div>
             <div className="record-line">
-              <span className="record-label">High</span>
+              <span className="record-label">King</span>
               <span className="record-value">{p.personalHigh?.score ?? '—'}</span>
             </div>
             <div className="record-line">
-              <span className="record-label">Low</span>
+              <span className="record-label">Dumbass</span>
               <span className="record-value">{p.personalLow?.score ?? '—'}</span>
             </div>
           </div>
